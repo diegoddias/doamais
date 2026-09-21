@@ -100,6 +100,43 @@ certificado TLS automaticamente pelo Let's Encrypt.
 O certificado é emitido no primeiro acesso e renovado sozinho. Depois disso, gere o QR Code
 definitivo em **Divulgação e QR Code** — ele já apontará para o endereço com HTTPS.
 
+### Notas para Oracle Cloud (camada gratuita)
+
+A instância ARM Ampere gratuita roda o projeto sem ajustes — todas as imagens usadas
+(`postgres:16-alpine`, `python:3.12-slim`, `node:20-alpine`, `nginx:1.27-alpine`, `caddy:2-alpine`)
+têm versão `arm64`. Dois pontos costumam travar quem publica ali pela primeira vez:
+
+**1. Liberar as portas em dois lugares, não em um.** Abrir 80 e 443 na *Security List* (ou
+*Network Security Group*) do painel da Oracle não basta: as imagens Ubuntu e Oracle Linux vêm com
+regras locais de firewall que descartam o tráfego antes de ele chegar ao Docker. No Ubuntu:
+
+```bash
+sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 80 -j ACCEPT && sudo iptables -I INPUT 6 -m state --state NEW -p tcp --dport 443 -j ACCEPT && sudo netfilter-persistent save
+```
+
+No Oracle Linux, o equivalente com firewalld:
+
+```bash
+sudo firewall-cmd --permanent --add-service=http --add-service=https && sudo firewall-cmd --reload
+```
+
+**2. Só suba o Caddy depois que o DNS estiver propagado.** O Let's Encrypt valida o domínio por
+HTTP; se `doamais.diegodias.dev` ainda não resolver para o IP da instância, a emissão falha e entra
+em espera. Confirme antes:
+
+```bash
+dig +short doamais.diegodias.dev
+```
+
+Com o IP correto na resposta, suba com `docker compose --profile producao up -d --build`.
+
+A instância gratuita tem pouca memória para compilar o frontend. Se o build do contêiner morrer
+sem explicação, gere a imagem na sua máquina e envie pronta, ou crie um arquivo de swap:
+
+```bash
+sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
+```
+
 ---
 
 ## O que o sistema faz
