@@ -1,0 +1,103 @@
+# Doa+ | Gestao Digital de Doacoes Comunitarias
+# Projeto de Extensao - Analise e Desenvolvimento de Sistemas - Faculdade QI Brasil
+#
+#   Subir tudo (local):      docker compose up -d --build
+#   Subir com HTTPS (dominio): docker compose --profile producao up -d --build
+#   Ver os registros:        docker compose logs -f backend
+#   Parar:                   docker compose down
+#   Apagar tambem os dados:  docker compose down -v
+
+name: doamais
+
+services:
+  # --------------------------------------------------------------- banco
+  db:
+    image: postgres:16-alpine
+    container_name: doamais-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-doamais}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-doamais}
+      POSTGRES_DB: ${POSTGRES_DB:-doamais}
+      TZ: America/Sao_Paulo
+    volumes:
+      - dados_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-doamais} -d ${POSTGRES_DB:-doamais}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks: [doamais]
+
+  # -------------------------------------------------------------- backend
+  backend:
+    build:
+      context: ./backend
+    container_name: doamais-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-doamais}:${POSTGRES_PASSWORD:-doamais}@db:5432/${POSTGRES_DB:-doamais}
+      SECRET_KEY: ${SECRET_KEY:-troque-esta-chave-em-producao}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:8080}
+      INSTITUICAO_NOME: ${INSTITUICAO_NOME:-Instituicao parceira}
+      INSTITUICAO_CIDADE: ${INSTITUICAO_CIDADE:-Alvorada/RS}
+      ADMIN_NOME: ${ADMIN_NOME:-Administrador}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@diegodias.dev}
+      ADMIN_SENHA: ${ADMIN_SENHA:-doamais123}
+      DIAS_ALERTA_VALIDADE: ${DIAS_ALERTA_VALIDADE:-30}
+      TZ: America/Sao_Paulo
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/saude || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks: [doamais]
+
+  # ------------------------------------------------------------- frontend
+  frontend:
+    build:
+      context: ./frontend
+    container_name: doamais-web
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - "${PORTA_WEB:-8080}:80"
+    networks: [doamais]
+
+  # -------------------------------------------------- HTTPS (perfil producao)
+  # Ativado apenas com --profile producao. Emite e renova o certificado
+  # automaticamente pelo Let's Encrypt para o dominio configurado no .env.
+  caddy:
+    image: caddy:2-alpine
+    container_name: doamais-https
+    restart: unless-stopped
+    profiles: ["producao"]
+    depends_on:
+      - frontend
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMINIO: ${DOMINIO:-doamais.diegodias.dev}
+      EMAIL_ACME: ${EMAIL_ACME:-admin@diegodias.dev}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - dados_caddy:/data
+      - config_caddy:/config
+    networks: [doamais]
+
+volumes:
+  dados_postgres:
+  dados_caddy:
+  config_caddy:
+
+networks:
+  doamais:
+    driver: bridge

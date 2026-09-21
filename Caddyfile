@@ -1,0 +1,26 @@
+# HTTPS automatico (Let's Encrypt) para o dominio do Doa+.
+# Usado apenas quando o perfil "producao" esta ativo:
+#   docker compose --profile producao up -d
+{
+	email {$EMAIL_ACME}
+}
+
+{$DOMINIO} {
+	encode gzip zstd
+
+	# Todo o trafego vai para o nginx do container do frontend, que ja
+	# distingue o SPA das rotas /api.
+	reverse_proxy frontend:80
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}
