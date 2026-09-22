@@ -51,7 +51,7 @@ services:
       DIAS_ALERTA_VALIDADE: ${DIAS_ALERTA_VALIDADE:-30}
       TZ: America/Sao_Paulo
     healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/api/saude || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/api/saude || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 5
