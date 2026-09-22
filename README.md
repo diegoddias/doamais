@@ -100,6 +100,20 @@ certificado TLS automaticamente pelo Let's Encrypt.
 O certificado é emitido no primeiro acesso e renovado sozinho. Depois disso, gere o QR Code
 definitivo em **Divulgação e QR Code** — ele já apontará para o endereço com HTTPS.
 
+### Atrás de um proxy reverso já existente
+
+Se o servidor já roda um proxy (Traefik, nginx do host) cuidando de 80/443, **não** use o perfil
+`producao` — o Caddy disputaria as mesmas portas e derrubaria o que já está no ar. Use o arquivo
+de integração com Traefik incluído no projeto:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.traefik.yml up -d --build
+```
+
+Ele coloca o frontend na rede `traefik_public`, adiciona os labels de roteamento e emissão de
+certificado, e mantém banco e backend isolados na rede interna. No `.env`, defina `DOMINIO`,
+`PUBLIC_BASE_URL` e `BIND_WEB=127.0.0.1` (para não publicar a porta do frontend na internet).
+
 ### Notas para Oracle Cloud (camada gratuita)
 
 A instância ARM Ampere gratuita roda o projeto sem ajustes — todas as imagens usadas

@@ -1,0 +1,40 @@
+# Publicação atrás de um Traefik já existente no servidor.
+#
+# Use este arquivo quando o servidor JÁ tem um proxy reverso cuidando de
+# 80/443 e dos certificados — nesse caso o Caddy do perfil "producao" não
+# deve subir, senão os dois disputam as mesmas portas e derrubam o que já
+# está no ar.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.traefik.yml up -d --build
+#
+# Pré-requisitos no servidor:
+#   - rede externa `traefik_public` (a mesma que o Traefik usa)
+#   - entrypoint `websecure` e certresolver `letsencrypt` configurados
+#   - DNS do domínio já apontando para o servidor (o desafio é HTTP-01)
+#
+# No .env deste ambiente:
+#   DOMINIO=doamais.exemplo.dev
+#   PUBLIC_BASE_URL=https://doamais.exemplo.dev
+#   BIND_WEB=127.0.0.1     # não expõe a porta do frontend na internet
+
+services:
+  frontend:
+    networks:
+      - doamais
+      - traefik_public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_public"
+
+      - "traefik.http.routers.doamais.rule=Host(`${DOMINIO}`)"
+      - "traefik.http.routers.doamais.entrypoints=websecure"
+
+      - "traefik.http.routers.doamais.tls=true"
+      - "traefik.http.routers.doamais.tls.certresolver=letsencrypt"
+
+      # Porta interna do nginx que serve o SPA e encaminha /api
+      - "traefik.http.services.doamais.loadbalancer.server.port=80"
+
+networks:
+  traefik_public:
+    external: true

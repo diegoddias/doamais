@@ -68,7 +68,9 @@ services:
       backend:
         condition: service_started
     ports:
-      - "${PORTA_WEB:-8080}:80"
+      # BIND_WEB=127.0.0.1 mantem a porta so no loopback, para quando um proxy
+      # reverso externo (Traefik, por exemplo) ja atende a internet.
+      - "${BIND_WEB:-0.0.0.0}:${PORTA_WEB:-8080}:80"
     networks: [doamais]
 
   # -------------------------------------------------- HTTPS (perfil producao)
