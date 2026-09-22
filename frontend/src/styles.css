@@ -679,14 +679,6 @@ textarea {
   font-size: 1.35rem;
 }
 
-.login-dica {
-  font-size: 0.82rem;
-  color: var(--texto-suave);
-  background: var(--verde-100);
-  padding: 10px 12px;
-  border-radius: var(--raio-pequeno);
-}
-
 /* ------------------------------------------------------ paginas publicas */
 .publico {
   min-height: 100vh;

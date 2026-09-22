@@ -78,12 +78,6 @@ export function Login() {
             {enviando ? 'Entrando...' : 'Entrar'}
           </button>
 
-          <p className="login-dica">
-            <strong>Primeiro acesso:</strong> use o e-mail e a senha do administrador definidos no
-            arquivo <code>.env</code> do servidor. Depois de entrar, troque a senha e cadastre os
-            voluntários em <em>Voluntários</em>.
-          </p>
-
           <p className="texto-suave" style={{ textAlign: 'center' }}>
             Quer doar? <Link to="/doar">Veja o que a instituição precisa</Link>
           </p>
